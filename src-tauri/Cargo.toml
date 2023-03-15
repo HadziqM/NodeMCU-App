@@ -1,0 +1,28 @@
+[package]
+name = "mcu-view"
+version = "0.0.1"
+description = "A Tauri App"
+authors = ["hadziq"]
+license = ""
+repository = ""
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[build-dependencies]
+tauri-build = { version = "1.2", features = [] }
+
+[dependencies]
+tauri = { version = "1.2", features = ["shell-open"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+lazy_static = "1.4.0"
+async-mutex = "1.4.0"
+chrono = { version ="0.4.24", features = ["serde"]}
+tokio = { version = "1.26.0", features = ["full"] }
+sqlx = { version = "0.6", features = [ "runtime-tokio-native-tls" , "postgres","chrono"] }
+
+[features]
+# this feature is used for production builds or when `devPath` points to the filesystem
+# DO NOT REMOVE!!
+custom-protocol = ["tauri/custom-protocol"]
