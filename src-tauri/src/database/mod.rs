@@ -42,7 +42,7 @@ impl std::fmt::Display for MyErr {
         }
     }
 }
-
+#[derive(Clone)]
 pub struct DB{
     pub pool:sqlx::Pool<sqlx::postgres::Postgres>
 }
