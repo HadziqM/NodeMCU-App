@@ -5,32 +5,14 @@
 pub mod database;
 
 use async_mutex::Mutex;
-use database::{flow::{FlowSens,FLowStatus},DB,MyErr};
+use database::{flow::{FlowSens,FLowStatus,FlowRate},DB};
 use lazy_static::lazy_static;
 
 lazy_static!{
     static ref FLOW_RISE:Mutex<Vec<FlowSens>> = Mutex::new(Vec::new());
     static ref FLOW_FALL:Mutex<Vec<FlowSens>> = Mutex::new(Vec::new());
     static ref FLOW_STATUS:Mutex<Box<FLowStatus>> = Mutex::new(Box::new(FLowStatus::default()));
-}
-async fn paralel(db:&DB)->Result<(),MyErr>{
-    let mut status = FLOW_STATUS.lock().await;
-    let mut rise = FLOW_RISE.lock().await;
-    let mut fall = FLOW_FALL.lock().await;
-    let mut r_stat = true;
-    let mut f_stat = true;
-    let new_rise = db.rise().await?;
-    let new_fall = db.fall().await?;
-    if *rise == new_rise{
-        r_stat = false
-    }
-    if *fall == new_fall{
-        f_stat = false
-    }
-    *rise = new_rise;
-    *fall = new_fall;
-    *status = Box::new(FLowStatus { rise: r_stat, fall: f_stat });
-    Ok(())
+    static ref FLOW_TOTAL:Mutex<Box<FlowRate>> = Mutex::new(Box::new(FlowRate { rate: 0, total: 0.0 }));
 }
 #[tauri::command]
 async fn database() -> String {
@@ -40,8 +22,8 @@ async fn database() -> String {
     };
     tokio::spawn(async move{
         loop {
-            tokio::time::sleep(std::time::Duration::new(10, 0)).await;
-            if let Err(why) = paralel(&db).await{
+            tokio::time::sleep(std::time::Duration::new(3, 0)).await;
+            if let Err(why) = db.paralel().await{
                 println!("error on paralel thread: {why:?}")
             }
         }

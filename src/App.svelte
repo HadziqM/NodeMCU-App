@@ -1,39 +1,34 @@
 <script lang="ts">
-  import Greet from './lib/Greet.svelte'
-</script>
-
-<main class="container">
-  <h1>Welcome to Tauri!</h1>
-
-  <div class="row">
-    <a href="https://vitejs.dev" target="_blank">
-      <img src="/vite.svg" class="logo vite" alt="Vite Logo" />
-    </a>
-    <a href="https://tauri.app" target="_blank">
-      <img src="/tauri.svg" class="logo tauri" alt="Tauri Logo" />
-    </a>
-    <a href="https://svelte.dev" target="_blank">
-      <img src="/svelte.svg" class="logo svelte" alt="Svelte Logo" />
-    </a>
-  </div>
-
-  <p>
-    Click on the Tauri, Vite, and Svelte logos to learn more.
-  </p>
-
-  <div class="row">
-    <Greet />
-  </div>
-
-
-</main>
-
-<style>
-  .logo.vite:hover {
-    filter: drop-shadow(0 0 2em #747bff);
+  import Title from "./lib/Title.svelte"
+  import { invoke } from "@tauri-apps/api/tauri";
+  let state = true
+  let msg = "Press This button bellow to connect to database <br/> (Make sure you have internet access)"
+  async function connect(){
+    msg = await invoke("database") as string
+    if (msg=="success"){
+      state = false
+    }
   }
-
-  .logo.svelte:hover {
-    filter: drop-shadow(0 0 2em #ff3e00);
+</script>
+  <Title/>
+{#if state}
+  <div class="main-box">
+    <p>{@html msg}</p>
+    <button on:click={async () => await connect()}>Connect</button>
+  </div>
+  {:else}
+  <button>Disconnect</button>
+{/if}
+<style>
+  .main-box{
+  color: #fff;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 50vw;
+  flex-direction: column;
+  }
+  p{
+  text-align: center;
   }
 </style>

@@ -4,7 +4,9 @@ pub mod flow;
 pub enum MyErr{
     Sqlx(sqlx::Error),
     Tokio(tokio::io::Error),
-    Tauri(tauri::Error)
+    Tauri(tauri::Error),
+    Serde(serde_json::Error),
+    Custom(String),
 }
 
 impl std::error::Error for MyErr {}
@@ -24,12 +26,19 @@ impl From<tauri::Error> for MyErr {
         MyErr::Tauri(value)
     }
 }
+impl From<serde_json::Error> for MyErr {
+    fn from(value: serde_json::Error) -> Self {
+        MyErr::Serde(value)
+    }
+}
 impl std::fmt::Display for MyErr {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self{
             Self::Sqlx(x)=>x.fmt(f),
             Self::Tokio(x)=>x.fmt(f),
-            Self::Tauri(x)=>x.fmt(f)
+            Self::Tauri(x)=>x.fmt(f),
+            Self::Custom(x)=>x.fmt(f),
+            Self::Serde(x)=>x.fmt(f)
         }
     }
 }
