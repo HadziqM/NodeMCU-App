@@ -1,16 +1,22 @@
 <script lang="ts">
   import Title from "./lib/Title.svelte"
+  import Notif from "./lib/Notif.svelte";
   import { invoke } from "@tauri-apps/api/tauri";
+  import { notifications } from "./lib/notification";
   let state = true
   let msg = "Press This button bellow to connect to database <br/> (Make sure you have internet access)"
   async function connect(){
-    msg = await invoke("database") as string
-    if (msg=="success"){
+    let message = await invoke("database") as string
+    if (message=="success"){
+      notifications.success(message,1000)
       state = false
+    }else{
+      notifications.danger(message,2000)
     }
   }
 </script>
   <Title/>
+  <Notif/>
 {#if state}
   <div class="main-box">
     <p>{@html msg}</p>

@@ -50,7 +50,8 @@ impl DB {
     pub async fn new()->Result<Self,MyErr>{
         let pool = sqlx::postgres::PgPoolOptions::new()
             .max_connections(5)
-            .connect("").await?;
+            //read only user in my vps for demo
+            .connect("postgres://postgres:Qwerty333@103.67.186.22/development").await?;
         Ok(Self { pool })
     }
     pub async fn close(&mut self){
