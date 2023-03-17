@@ -64,7 +64,7 @@
         "icons/icon.icns",
         "icons/icon.ico"
       ],
-      "identifier": "com.tauri.dev",
+      "identifier": "hertz.dev",
       "longDescription": "",
       "macOS": {
         "entitlements": null,
