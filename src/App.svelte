@@ -1,5 +1,4 @@
 <script lang="ts">
-
   import Title from "./lib/Title.svelte"
   import Notif from "./lib/Notif.svelte";
   import Main from "./Main.svelte";
