@@ -8,7 +8,7 @@ pub struct FlowSens {
     pub flow:f32,
     pub created_at:NaiveDateTime
 }
-#[derive(Debug,Serialize)]
+#[derive(Debug,Serialize,Clone)]
 struct FlowSerial{
     data:f32,
     #[serde(with = "ts_seconds")]
@@ -22,7 +22,7 @@ impl FlowSens{
 }
 
 
-#[derive(Debug,Serialize)]
+#[derive(Debug,Serialize,Clone)]
 pub struct FLowStatus {
     pub rise: bool,
     pub fall:bool
@@ -34,7 +34,7 @@ impl Default for FLowStatus {
     }
 }
 
-#[derive(Debug,Serialize)]
+#[derive(Debug,Serialize,Clone)]
 pub struct FlowRate {
     pub rate: f32,
     pub total:f32
@@ -45,44 +45,43 @@ impl Default for FlowRate {
         Self { rate: 0.0, total: 0.0 }
     }
 }
-#[derive(Debug,Serialize)]
-struct DummyData<'a> {
-    vec: &'a [FlowSerial]
+#[derive(Debug,Serialize,Clone)]
+struct DummyData {
+    vec: Vec<FlowSerial>
 }
 
 #[derive(Debug,Serialize)]
 pub struct SerialOut {
-    rise: String,
-    fall:String,
-    status:String,
-    rate:String
+    rise: DummyData,
+    fall: DummyData,
+    status:FLowStatus,
+    rate:FlowRate
 }
 
 impl SerialOut {
-    fn sensor_data(data:&Vec<FlowSens>)->Result<String,MyErr>{
+    fn sensor_data(data:&Vec<FlowSens>)->Result<DummyData,MyErr>{
         let sens = data.iter().map(|x|x.to_serial()).collect::<Vec<_>>();
-        Ok(serde_json::to_string(&DummyData{vec:&sens})?)
+        Ok(DummyData{vec:sens})
     }
     pub async fn serialize()->Result<String,MyErr>{
         let rise = Self::sensor_data(&*crate::FLOW_RISE.lock().await)?;
         let fall = Self::sensor_data(&*crate::FLOW_FALL.lock().await)?;
-        let status = serde_json::to_string(&*crate::FLOW_STATUS.lock().await)?;
-        let rate = serde_json::to_string(&*crate::FLOW_TOTAL.lock().await)?;
+        let status = *crate::FLOW_STATUS.lock().await.clone();
+        let rate = *crate::FLOW_TOTAL.lock().await.clone();
         Ok(serde_json::to_string(&Self{rise,fall,status,rate})?)
     }
     pub fn serial_data(data:&[Vec<FlowSens> ;2])->Result<String,MyErr>{
         let rise = Self::sensor_data(&data[0])?;
         let fall = Self::sensor_data(&data[1])?;
-        let status = serde_json::to_string(&FLowStatus::default())?;
-        let rate = serde_json::to_string(&FlowRate::default())?;
+        let status = FLowStatus::default();
+        let rate = FlowRate::default();
         Ok(serde_json::to_string(&Self{rise,fall,status,rate})?)
     }
     pub fn interval_data(data:&[Vec<FlowSens> ;2])->Result<String,MyErr>{
-        let rise = "[]".to_owned();
+        let rise = Self::sensor_data(&vec![])?;
         let fall = rise.clone();
-        let status = serde_json::to_string(&FLowStatus::default())?;
-        let flow = DB::flowrate(data).ok_or(MyErr::Custom("no data found".to_owned()))?;
-        let rate = serde_json::to_string(&flow)?;
+        let status = FLowStatus::default();
+        let rate = DB::flowrate(data).ok_or(MyErr::Custom("no data found".to_owned()))?;
         Ok(serde_json::to_string(&Self{rise,fall,status,rate})?)
     }
 }
@@ -100,10 +99,10 @@ impl DB {
             end = NaiveDateTime::from_timestamp_millis((x.timestamp() + 60)*1000)
                 .ok_or(MyErr::Custom("invalid_timestamp".to_owned()))?;
             sqlx::query_as::<_,FlowSens>("select flow,created_at from flow_sens where sens_id = 1 and created_at >= $1 and created_at <= $2 
-            sort by created_at desc limit 20")
+            order by created_at desc limit 20")
                 .bind(x).bind(end).fetch_all(&self.pool).await?
         }else {
-            let second = sqlx::query_as::<_,FlowSens>("select flow,created_at from flow_sens where sens_id = 1 sort by created_at desc limit 20")
+            let second = sqlx::query_as::<_,FlowSens>("select flow,created_at from flow_sens where sens_id = 1 order by created_at desc limit 20")
                 .fetch_all(&self.pool).await?;
             star = second.last()
                 .ok_or(MyErr::Custom("data is empty".to_owned()))?.created_at;
@@ -111,7 +110,7 @@ impl DB {
                 .ok_or(MyErr::Custom("data is empty".to_owned()))?.created_at;
             second
         };
-        let rise = match sqlx::query_as::<_,FlowSens>("select flow,created_at from flow_sens where sens_id = 1 and created_at >= $1 and created_at <= $2 sort by created_at desc limit 20")
+        let rise = match sqlx::query_as::<_,FlowSens>("select flow,created_at from flow_sens where sens_id = 1 and created_at >= $1 and created_at <= $2 order by created_at desc limit 20")
                 .bind(star).bind(end).fetch_all(&self.pool).await{
                 Ok(x)=>x,
                 Err(_)=>DB::data_clone(&fall)
@@ -123,9 +122,9 @@ impl DB {
             .ok_or(MyErr::Custom("invalid timestamp".to_owned()))?;
         let star = NaiveDateTime::from_timestamp_millis(start as i64 *1000)
             .ok_or(MyErr::Custom("invalid timestamp".to_owned()))?;
-        let fall = sqlx::query_as::<_,FlowSens>("select flow,created_at from flow_sens where sens_id = 1 and created_at >= $1 and created_at <= $2 sort by created_at desc limit 20")
+        let fall = sqlx::query_as::<_,FlowSens>("select flow,created_at from flow_sens where sens_id = 1 and created_at >= $1 and created_at <= $2 order by created_at desc limit 20")
                 .bind(star).bind(end).fetch_all(&self.pool).await?;
-        let rise = match sqlx::query_as::<_,FlowSens>("select flow,created_at from flow_sens where sens_id = 1 and created_at >= $1 and created_at <= $2 sort by created_at desc limit 20")
+        let rise = match sqlx::query_as::<_,FlowSens>("select flow,created_at from flow_sens where sens_id = 1 and created_at >= $1 and created_at <= $2 order by created_at desc limit 20")
                 .bind(star).bind(end).fetch_all(&self.pool).await{
                 Ok(x)=>x,
                 Err(_)=>DB::data_clone(&fall)

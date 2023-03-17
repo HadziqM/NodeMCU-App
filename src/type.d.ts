@@ -1,14 +1,18 @@
 export interface FlowData{
-  rise : {
-    value:number,
-    created_at:number
-  }[],
-  fall : {
-    value:number,
-    created_at:number
-  }[],
+  rise : Data,
+  fall : Data,
   status : {
     rise:bool,
     fall:bool
+  },
+  rate:{
+    rate:number,
+    total:number
   }
+}
+interface Data{
+  vec:{
+    data:number,
+    date:number
+  }[]
 }

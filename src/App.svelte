@@ -1,6 +1,7 @@
 <script lang="ts">
   import Title from "./lib/Title.svelte"
   import Notif from "./lib/Notif.svelte";
+  import Main from "./Main.svelte";
   import { invoke } from "@tauri-apps/api/tauri";
   import { notifications } from "./lib/notification";
   let state = true
@@ -23,7 +24,7 @@
     <button on:click={async () => await connect()}>Connect</button>
   </div>
   {:else}
-  <button>Disconnect</button>
+  <Main/>
 {/if}
 <style>
   .main-box{

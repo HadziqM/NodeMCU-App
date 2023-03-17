@@ -28,7 +28,7 @@ async fn database() -> String {
     *dbase = Some(db.clone());
     tokio::spawn(async move{
         loop {
-            tokio::time::sleep(std::time::Duration::new(3, 0)).await;
+            tokio::time::sleep(std::time::Duration::new(6, 0)).await;
             if let Err(why) = db.paralel().await{
                 println!("error on paralel thread: {why:?}")
             }
