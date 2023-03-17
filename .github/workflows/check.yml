@@ -1,0 +1,44 @@
+on: [push, pull_request]
+
+name: Check
+
+jobs:
+  check:
+    name: Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v2
+
+      - name: install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: check compile
+        run: cd src-tauri&&cargo check
+
+      - name: Install Node.js
+        uses: actions/setup-node@v3
+        with:
+            node-version: 16
+
+      - uses: pnpm/action-setup@v2
+        name: Install pnpm
+        id: pnpm-install
+        with:
+            version: 7
+            run_install: false
+
+      - name: Get pnpm store directory
+        id: pnpm-cache
+        shell: bash
+        run: |
+            echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
+      - name: Install dependencies
+        run: pnpm i
+
+      - name: built web
+        run: pnpm build
+
+
