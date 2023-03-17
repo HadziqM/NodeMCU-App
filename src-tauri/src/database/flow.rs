@@ -89,6 +89,9 @@ impl SerialOut {
 
 
 impl DB {
+    fn data_clone(data:&Vec<FlowSens>)->Vec<FlowSens>{
+        data.iter().map(|x|FlowSens{flow:0.0,created_at:x.created_at}).collect::<Vec<_>>()
+    }
     pub async fn data(&self,start:Option<NaiveDateTime>)->Result<[Vec<FlowSens> ;2],MyErr>{
         let end;
         let star;
@@ -108,8 +111,11 @@ impl DB {
                 .ok_or(MyErr::Custom("data is empty".to_owned()))?.created_at;
             second
         };
-        let rise = sqlx::query_as::<_,FlowSens>("select flow,created_at from flow_sens where sens_id = 1 and created_at >= $1 and created_at <= $2 sort by created_at desc limit 20")
-                .bind(star).bind(end).fetch_all(&self.pool).await?;
+        let rise = match sqlx::query_as::<_,FlowSens>("select flow,created_at from flow_sens where sens_id = 1 and created_at >= $1 and created_at <= $2 sort by created_at desc limit 20")
+                .bind(star).bind(end).fetch_all(&self.pool).await{
+                Ok(x)=>x,
+                Err(_)=>DB::data_clone(&fall)
+    };
         Ok([rise,fall])
     }
     pub async fn interval(&self,start:i32,stop:i32)->Result<[Vec<FlowSens> ;2],MyErr>{
@@ -119,8 +125,11 @@ impl DB {
             .ok_or(MyErr::Custom("invalid timestamp".to_owned()))?;
         let fall = sqlx::query_as::<_,FlowSens>("select flow,created_at from flow_sens where sens_id = 1 and created_at >= $1 and created_at <= $2 sort by created_at desc limit 20")
                 .bind(star).bind(end).fetch_all(&self.pool).await?;
-        let rise = sqlx::query_as::<_,FlowSens>("select flow,created_at from flow_sens where sens_id = 1 and created_at >= $1 and created_at <= $2 sort by created_at desc limit 20")
-                .bind(star).bind(end).fetch_all(&self.pool).await?;
+        let rise = match sqlx::query_as::<_,FlowSens>("select flow,created_at from flow_sens where sens_id = 1 and created_at >= $1 and created_at <= $2 sort by created_at desc limit 20")
+                .bind(star).bind(end).fetch_all(&self.pool).await{
+                Ok(x)=>x,
+                Err(_)=>DB::data_clone(&fall)
+            };
         Ok([rise,fall])
     }
     fn flowrate(data:&[Vec<FlowSens> ;2])-> Option<FlowRate>{
