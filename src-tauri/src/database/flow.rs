@@ -138,10 +138,11 @@ impl DB {
         let rate = vector / time as f32 * 60.0;
         Some(FlowRate { rate, total: vector })
     }
-    async fn rate(data:&[Vec<FlowSens> ;2])->Option<()>{
+    async fn rate(data:&[Vec<FlowSens> ;2],data2:&[Vec<FlowSens> ;2])->Option<()>{
         let rate = Self::flowrate(data)?;
+        let rate2 = Self::flowrate(data2)?;
         let mut flow = crate::FLOW_TOTAL.lock().await;
-        *flow = Box::new(FlowRate{rate:rate.rate,total:flow.total + rate.total});
+        *flow = Box::new(FlowRate{rate:rate.rate,total:flow.total + (rate2.total - rate.total)});
         Some(())
     }
     pub async fn paralel(&self)->Result<(),MyErr>{
@@ -151,7 +152,8 @@ impl DB {
         let mut r_stat = true;
         let mut f_stat = true;
         let data = self.data(None).await?;
-        if *rise == data[0]{
+        let data2 = [rise.clone(),fall.clone()];
+        if *rise == data[0] || (data[0].len() == data[1].len() && data[0].iter().map(|x|x.flow).sum::<f32>() == 0.0){
             r_stat = false
         }
         if *fall == data[1]{
@@ -160,7 +162,7 @@ impl DB {
         *rise = data[0].clone();
         *fall = data[1].clone();
         *status = Box::new(FLowStatus { rise: r_stat, fall: f_stat });
-        Self::rate(&data).await.ok_or(MyErr::Custom("the data is empty".to_owned()))?;
+        Self::rate(&data,&data2).await.ok_or(MyErr::Custom("the data is empty".to_owned()))?;
         Ok(())
     }
 }

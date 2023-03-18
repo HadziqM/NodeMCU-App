@@ -93,7 +93,7 @@
         "fullscreen": false,
         "height": 600,
         "decorations": false,
-        "resizable": true,
+        "resizable": false,
         "title": "trial-app",
         "width": 1000
       }

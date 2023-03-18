@@ -2,6 +2,8 @@
   import Title from "./lib/Title.svelte"
   import Notif from "./lib/Notif.svelte";
   import Main from "./Main.svelte";
+  import Header from "./lib/Header.svelte";
+  import Footer from "./lib/Footer.svelte";
   import { invoke } from "@tauri-apps/api/tauri";
   import { notifications } from "./lib/notification";
   let state = true
@@ -17,15 +19,19 @@
   }
 </script>
   <Title/>
+<Header/>
   <Notif/>
-{#if state}
-  <div class="main-box">
-    <p>{@html msg}</p>
-    <button on:click={async () => await connect()}>Connect</button>
-  </div>
-  {:else}
-  <Main/>
-{/if}
+<div class="absolute flex flex-col justify-center items-center top-[140px] w-screen h-[420px]">
+  {#if state}
+    <div class="main-box">
+      <p>{@html msg}</p>
+      <button on:click={async () => await connect()}>Connect</button>
+    </div>
+    {:else}
+    <Main/>
+  {/if}
+</div>
+  <Footer/>
 <style>
   .main-box{
   color: #fff;
