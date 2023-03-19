@@ -106,15 +106,16 @@ impl DB {
                 .fetch_all(&self.pool).await?;
             star = second.last()
                 .ok_or(MyErr::Custom("data is empty".to_owned()))?.created_at;
-            end = second.last()
+            end = second.first()
                 .ok_or(MyErr::Custom("data is empty".to_owned()))?.created_at;
             second
         };
-        let rise = match sqlx::query_as::<_,FlowSens>("select flow,created_at from flow_sens where sens_id = 1 and created_at >= $1 and created_at <= $2 order by created_at desc limit 20")
-                .bind(star).bind(end).fetch_all(&self.pool).await{
-                Ok(x)=>x,
-                Err(_)=>DB::data_clone(&fall)
-    };
+        let rise_raw =sqlx::query_as::<_,FlowSens>("select flow,created_at from flow_sens where sens_id = 2 and created_at>=$1 and created_at<=$2 order by created_at desc").bind(star).bind(end).fetch_all(&self.pool).await?;
+        let rise  = if rise_raw.len() == 0{
+            DB::data_clone(&fall)
+        }else {
+            rise_raw
+        };
         Ok([rise,fall])
     }
     pub async fn interval(&self,start:i32,stop:i32)->Result<[Vec<FlowSens> ;2],MyErr>{
@@ -122,14 +123,27 @@ impl DB {
             .ok_or(MyErr::Custom("invalid timestamp".to_owned()))?;
         let star = NaiveDateTime::from_timestamp_millis(start as i64 *1000)
             .ok_or(MyErr::Custom("invalid timestamp".to_owned()))?;
-        let fall = sqlx::query_as::<_,FlowSens>("select flow,created_at from flow_sens where sens_id = 1 and created_at >= $1 and created_at <= $2 order by created_at desc limit 20")
+        let fall = sqlx::query_as::<_,FlowSens>("select flow,created_at from flow_sens where sens_id = 1 and created_at >= $2 and created_at <= $1 order by created_at desc")
                 .bind(star).bind(end).fetch_all(&self.pool).await?;
-        let rise = match sqlx::query_as::<_,FlowSens>("select flow,created_at from flow_sens where sens_id = 1 and created_at >= $1 and created_at <= $2 order by created_at desc limit 20")
+        let rise = match sqlx::query_as::<_,FlowSens>("select flow,created_at from flow_sens where sens_id = 2 and created_at>=$1 and created_at<=$2 order by created_at desc limit 20")
                 .bind(star).bind(end).fetch_all(&self.pool).await{
                 Ok(x)=>x,
                 Err(_)=>DB::data_clone(&fall)
             };
         Ok([rise,fall])
+    }
+    fn find_new_data(data:&Vec<FlowSens>,data2:&Vec<FlowSens>)->f32 {
+        let only_date = data2.iter().map(|x|x.created_at).collect::<Vec<_>>();
+        let mut contain = Vec::new();
+        for i in data{
+            if !only_date.contains(&i.created_at){
+                contain.push(i.flow)
+            }
+        }
+        contain.iter().sum::<f32>()
+    }
+    fn new_data_total(data:&[Vec<FlowSens> ;2],data2:&[Vec<FlowSens> ;2])->f32{
+        Self::find_new_data(&data[1] , &data2[1]) - Self::find_new_data(&data[0], &data2[0])
     }
     fn flowrate(data:&[Vec<FlowSens> ;2])-> Option<FlowRate>{
         let sum = |x:&Vec<FlowSens>|x.iter().map(|x|x.flow).sum::<f32>();
@@ -140,9 +154,8 @@ impl DB {
     }
     async fn rate(data:&[Vec<FlowSens> ;2],data2:&[Vec<FlowSens> ;2])->Option<()>{
         let rate = Self::flowrate(data)?;
-        let rate2 = Self::flowrate(data2)?;
         let mut flow = crate::FLOW_TOTAL.lock().await;
-        *flow = Box::new(FlowRate{rate:rate.rate,total:flow.total + (rate2.total - rate.total)});
+        *flow = Box::new(FlowRate{rate:rate.rate,total:flow.total + Self::new_data_total(data,data2)});
         Some(())
     }
     pub async fn paralel(&self)->Result<(),MyErr>{
@@ -164,5 +177,18 @@ impl DB {
         *status = Box::new(FLowStatus { rise: r_stat, fall: f_stat });
         Self::rate(&data,&data2).await.ok_or(MyErr::Custom("the data is empty".to_owned()))?;
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod testting{
+    use super::*;
+
+    #[tokio::test]
+    async fn query_data() {
+        let db = DB::new().await.unwrap();
+        let x = db.data(None).await.unwrap();
+        println!("{:?}",x[1]);
+        println!("{:?}",x[0])
     }
 }
