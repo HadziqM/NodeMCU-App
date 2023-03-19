@@ -153,6 +153,10 @@ impl DB {
         Some(FlowRate { rate, total: vector })
     }
     async fn rate(data:&[Vec<FlowSens> ;2],data2:&[Vec<FlowSens> ;2])->Option<()>{
+        //on first state
+        if data2[1].len() == 0{
+            return Some(());
+        }
         let rate = Self::flowrate(data)?;
         let mut flow = crate::FLOW_TOTAL.lock().await;
         *flow = Box::new(FlowRate{rate:rate.rate,total:flow.total + Self::new_data_total(data,data2)});
