@@ -7,6 +7,7 @@
   export let title: String = "";
   export let colors: String[] = [];
   $: options = {
+    type:"area",
     width:450,
     height:200,
     title,
@@ -21,6 +22,6 @@
 <div class="text-white w-[450px] h-[200px] bg-gray-800 row-span-2 col-span-3 relative">
   <button on:click={()=>{
     flowState.update(e=>!e)
-  }} class="py-1 px-2 absolute top-1 left-1 z-30 text-sm bg-red-600">{fall?"Fall":"Rise"}</button>
+  }} class="py-1 px-2 absolute top-1 left-1 z-30 text-sm bg-red-600">{fall?"In":"Out"}</button>
   <google-chart {data} options={{ ...options }} />
 </div>

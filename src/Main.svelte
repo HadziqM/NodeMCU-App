@@ -18,7 +18,7 @@
   })
   let data_fall: (String[] | (string | number)[])[] = [label,["place",0],["lace2",2]];
   let data_rise: (String[] | (string | number)[])[] = [label,["place",0],["lace2",2]];
-  let title: String = "Flow Sensor";
+  $: title =state?"Flow Sensor In":"Flow Sensor Out";
   let colors: String[] = ["#fff"];
   let colors2: String[] = ["#aaf"];
   let rate = 0

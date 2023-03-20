@@ -13,14 +13,14 @@
     <div class="flex-col flex bg-gray-800 rounded-lg w-full h-full status">
       <p class="w-full px-2 m-1 font-bold">Connection</p>
       <div class="flex items-center justify-between w-full pl-2 pr-4">
-        <p>Falling</p>
+        <p>Flow In</p>
         <div
           class="border rounded-full h-2 w-2"
           style={styles(flow1)}
         ></div>
       </div>
       <div class="flex items-center justify-between w-full pl-2 pr-4">
-        <p>Rising</p>
+        <p>Flow Out</p>
         <div
           class="border rounded-full h-2 w-2"
           style={styles(flow2)}
